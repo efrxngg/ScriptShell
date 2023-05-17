@@ -17,7 +17,7 @@ project_artifact=""    #artefacto del proyecto
 new_version=""         #version nueva
 pattern_line_change="" #patron de la linea del proyecto
 
-type=""        #tipo de cambio de version: major, minor, patch
+type=""        #tipo de cambio de version: major, minor 0 patch
 environment="" #tipo de entorno: prod, inc
 
 # Functions
@@ -77,6 +77,7 @@ modifySemver() {
 
     # Construir la nueva versión modificada
     new_version="$major.$minor.$patch"
+    echo "Version<old: $current_version | new: $new_version>"
 }
 
 changeVersion() {
@@ -88,8 +89,11 @@ changeVersion() {
 updateAllArtifactForProyect() {
     # Buscamos y reemplazamos el artifact en los archivos de la ruta especificada
     local pathFile="$path/deploy"
-    find "$pathFile" -type f -exec grep -l "$project_artifact-$current_version" {} + | xargs sed -i "s/$project_artifact-$current_version/$project_artifact-$new_version/g"
-    find "$pathFile" -type f -exec grep -l "$project_artifact:$current_version" {} + | xargs sed -i "s/$project_artifact:$current_version/$project_artifact:$new_version/g"
+    if [[ $new_version != "" ]]; then
+        find "$pathFile" -type f -exec grep -l "$project_artifact-$current_version" {} + | xargs sed -i "s/$project_artifact-$current_version/$project_artifact-$new_version/g"
+        find "$pathFile" -type f -exec grep -l "$project_artifact:$current_version" {} + | xargs sed -i "s/$project_artifact:$current_version/$project_artifact:$new_version/g"
+        echo "Artifact<old: $project_artifact-$current_version | new: $project_artifact-$new_version>"
+    fi
 }
 
 inputArgs() {
@@ -115,12 +119,7 @@ inputArgs "$@"
 if [[ $type != "" ]]; then
     echo "Tipo cambio de version: $type"
     getPomInformation "./retentionprocesses"
-
     modifySemver "$type"
-    echo "Version<old: $current_version | new: $new_version>"
-
     changeVersion
-    echo "Artifact<old: $project_artifact-$current_version | new: $project_artifact-$new_version>"
-
     updateAllArtifactForProyect
 fi
