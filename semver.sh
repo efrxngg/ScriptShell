@@ -13,11 +13,11 @@
 
 # Variables del script [Modificable]
 # [Produccion]
-name_project_production=""
-route_producion=""
+name_project_production="claro-service-waiver"
+route_producion="edx-renuncia-webbff.openshift-apps.conecel.com"
 # [Incubadora]
-name_project_incubadora=""
-route_incubadora=""
+name_project_incubadora="claro-edx-incubadora"
+route_incubadora="incubadora-edx-renuncia-webbff.openshift-apps.conecel.com"
 
 # Variables del Script [UnModifiable]
 path=""      #ruta del proyecto
@@ -29,22 +29,37 @@ idOpenShiftName="<!-- idOpenShiftNameProject -->" #identificacion de artifact de
 
 project_artifact="" #artefacto del proyecto
 current_version=""  #version actual del proyecto
-open_shift_name=""  #nombre de openshitt del proyecto
 new_version=""      #version nueva
 
 type=""        #tipo de cambio de version: major, minor 0 patch
 environment="" #tipo de entorno: prod, inc
 
 # Functions
+inputArgs() {
+    while getopts "t:e:" opt; do
+        case $opt in
+        t)
+            type=$OPTARG
+            ;;
+        e)
+            environment=$OPTARG
+            ;;
+        \?)
+            echo "Opción inválida: -$OPTARG" >&2
+            exit 1
+            ;;
+        esac
+    done
+}
+
 getPomInformation() {
     path="$1"
     path_info="$path/pom.xml"
     local patternVersion="<version>([^<]+)<\/version> $idVersion"         #Para que funcione se le debe añadir ese comentario
     local patternArtifact="<artifactId>([^<]+)<\/artifactId> $idArtifact" #Para que funcione se le debe añadir ese comentario
-    local patternOpenShiftName="<openshiftProjectName>([^<]+)<\/openshiftProjectName> $idOpenShiftName"
     local contador=0
     while IFS= read -r linea; do
-        if [ $contador -eq 3 ]; then
+        if [ $contador -eq 2 ]; then
             break
         fi
 
@@ -108,23 +123,6 @@ updateAllArtifactForProyect() {
     find "$pathFile" -type f -exec grep -l "$project_artifact-$current_version" {} + | xargs sed -i "s/$project_artifact-$current_version/$project_artifact-$new_version/g"
     find "$pathFile" -type f -exec grep -l "$project_artifact:$current_version" {} + | xargs sed -i "s/$project_artifact:$current_version/$project_artifact:$new_version/g"
     echo "Artifact<old: $project_artifact-$current_version | new: $project_artifact-$new_version>"
-}
-
-inputArgs() {
-    while getopts "t:e:" opt; do
-        case $opt in
-        t)
-            type=$OPTARG
-            ;;
-        e)
-            environment=$OPTARG
-            ;;
-        \?)
-            echo "Opción inválida: -$OPTARG" >&2
-            exit 1
-            ;;
-        esac
-    done
 }
 
 # Call
