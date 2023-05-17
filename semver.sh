@@ -1,6 +1,11 @@
 #!/bin/bash
 
-# Variables
+# Autor: efrxngg
+# Descripción:
+# Script para automatizar el proceso de cambio de versión en los archivos del proyecto
+# y manejar diferentes escenarios de uso mediante la interfaz de línea de comandos (CLI).
+
+# Variables del Script [No tocar]
 path="" #ruta del proyecto
 
 #Identificadores
@@ -8,25 +13,24 @@ idVersion="idVersionProject"
 idArtifact="idArtifactProject"
 
 current_version="" #version actual
-project_artifact=""
+project_artifact="" #artefacto del proyecto
 new_version=""       #version nueva
-patternLineChange="" #patron de la linea del proyecto
-pathInfo=""
+pattern_line_change="" #patron de la linea del proyecto
+path_info=""
 # Functions
 
-getInformation() {
+getPomInformation() {
     path="$1"
-    pathInfo="$path/pom.xml"
+    path_info="$path/pom.xml"
     local patternVersion="<version>([^<]+)<\/version> <!-- $idVersion -->"         #Para que funcione se le debe añadir ese comentario
     local patternArtifact="<artifactId>([^<]+)<\/artifactId> <!-- $idArtifact -->" #Para que funcione se le debe añadir ese comentario
     contador=0
     while IFS= read -r linea; do
         if [ $contador -eq 2 ]; then
-            echo "El contador es igual a 2. Deteniendo el bucle."
             break
         fi
 
-        patternLineChange="$linea"
+        pattern_line_change="$linea"
         linea=$(echo "$linea" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
         if [[ "$linea" =~ $patternVersion ]]; then
             current_version="${BASH_REMATCH[1]}"
@@ -36,10 +40,10 @@ getInformation() {
             project_artifact="${BASH_REMATCH[1]}"
             ((contador++))
         fi
-    done <"$pathInfo"
+    done <"$path_info"
 }
 
-modify_semver() {
+modifySemver() {
     local type="$1"
 
     # Verificar si el argumento type es válido
@@ -74,30 +78,28 @@ modify_semver() {
 }
 
 changeVersion() {
-    local escaped_patternLineChange=$(sed 's/[[\.*^$/]/\\&/g' <<<"$patternLineChange")
+    local escaped_pattern_line_change=$(sed 's/[[\.*^$/]/\\&/g' <<<"$pattern_line_change")
     local escaped_new_version=$(sed 's/[[\.*^$/]/\\&/g' <<<"$new_version")
-    sed -i "s/$escaped_patternLineChange/    <version>$escaped_new_version<\/version> <!-- $idVersion -->/g" "$pathInfo"
+    sed -i "s/$escaped_pattern_line_change/    <version>$escaped_new_version<\/version> <!-- $idVersion -->/g" "$path_info"
 }
 
 updateAllArtifactForProyect() {
-    local old_artifact="$1"
-    local new_artifact="$2"
-
     # Buscamos y reemplazamos el artifact en los archivos de la ruta especificada
-    local pathFile="$path/deploy/docker/Dockerfile"
-    find "$pathFile" -type f -exec sed -i "s/$old_artifact/$new_artifact/g" {} +
+    local pathFile="$path/deploy"
+    find "$pathFile" -type f -exec grep -l "$project_artifact-$current_version" {} + | xargs sed -i "s/$project_artifact-$current_version/$project_artifact-$new_version/g"
+    find "$pathFile" -type f -exec grep -l "$project_artifact:$current_version" {} + | xargs sed -i "s/$project_artifact:$current_version/$project_artifact:$new_version/g"
 }
 
 # Uso
-getInformation "./retentionprocesses"
+getPomInformation "./retentionprocesses"
 echo "Version old: $current_version"
 
-modify_semver "patch"
+modifySemver "patch"
 echo "Version new: $new_version"
 
 changeVersion
 echo "Artifact old: $project_artifact-$current_version"
 echo "Artifact new: $project_artifact-$new_version"
 
-updateAllArtifactForProyect "$project_artifact-$current_version" "$project_artifact-$new_version"
+updateAllArtifactForProyect 
 
