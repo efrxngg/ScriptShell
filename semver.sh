@@ -6,19 +6,21 @@
 # y manejar diferentes escenarios de uso mediante la interfaz de línea de comandos (CLI).
 
 # Variables del Script [No tocar]
-path="" #ruta del proyecto
+path=""      #ruta del proyecto
+path_info="" #ruta del pom
 
-#Identificadores
-idVersion="idVersionProject"
-idArtifact="idArtifactProject"
+idVersion="idVersionProject"   #identificador de la version del proyecto
+idArtifact="idArtifactProject" #identificacion de artifact del proyecto
 
-current_version="" #version actual
-project_artifact="" #artefacto del proyecto
-new_version=""       #version nueva
+current_version=""     #version actual
+project_artifact=""    #artefacto del proyecto
+new_version=""         #version nueva
 pattern_line_change="" #patron de la linea del proyecto
-path_info=""
-# Functions
 
+type=""        #tipo de cambio de version: major, minor, patch
+environment="" #tipo de entorno: prod, inc
+
+# Functions
 getPomInformation() {
     path="$1"
     path_info="$path/pom.xml"
@@ -90,16 +92,35 @@ updateAllArtifactForProyect() {
     find "$pathFile" -type f -exec grep -l "$project_artifact:$current_version" {} + | xargs sed -i "s/$project_artifact:$current_version/$project_artifact:$new_version/g"
 }
 
-# Uso
-getPomInformation "./retentionprocesses"
-echo "Version old: $current_version"
+inputArgs() {
+    while getopts "t:e:" opt; do
+        case $opt in
+        t)
+            type=$OPTARG
+            ;;
+        e)
+            environment=$OPTARG
+            ;;
+        \?)
+            echo "Opción inválida: -$OPTARG" >&2
+            exit 1
+            ;;
+        esac
+    done
+}
 
-modifySemver "patch"
-echo "Version new: $new_version"
+# Call
+inputArgs "$@"
 
-changeVersion
-echo "Artifact old: $project_artifact-$current_version"
-echo "Artifact new: $project_artifact-$new_version"
+if [[ $type != "" ]]; then
+    echo "Tipo cambio de version: $type"
+    getPomInformation "./retentionprocesses"
 
-updateAllArtifactForProyect 
+    modifySemver "$type"
+    echo "Version<old: $current_version | new: $new_version>"
 
+    changeVersion
+    echo "Artifact<old: $project_artifact-$current_version | new: $project_artifact-$new_version>"
+
+    updateAllArtifactForProyect
+fi
