@@ -23,13 +23,14 @@ route_incubadora=""
 path=""      #ruta del proyecto
 path_info="" #ruta del pom
 
-idVersion="idVersionProject"   #identificador de la version del proyecto
-idArtifact="idArtifactProject" #identificacion de artifact del proyecto
+idVersion="<!-- idVersionProject -->"             #identificador de la version del proyecto
+idArtifact="<!-- idArtifactProject -->"           #identificacion de artifact del proyecto
+idOpenShiftName="<!-- idOpenShiftNameProject -->" #identificacion de artifact del proyecto
 
-current_version=""     #version actual
-project_artifact=""    #artefacto del proyecto
-new_version=""         #version nueva
-pattern_line_change="" #patron de la linea del proyecto
+project_artifact="" #artefacto del proyecto
+current_version=""  #version actual del proyecto
+open_shift_name=""  #nombre de openshitt del proyecto
+new_version=""      #version nueva
 
 type=""        #tipo de cambio de version: major, minor 0 patch
 environment="" #tipo de entorno: prod, inc
@@ -38,20 +39,21 @@ environment="" #tipo de entorno: prod, inc
 getPomInformation() {
     path="$1"
     path_info="$path/pom.xml"
-    local patternVersion="<version>([^<]+)<\/version> <!-- $idVersion -->"         #Para que funcione se le debe añadir ese comentario
-    local patternArtifact="<artifactId>([^<]+)<\/artifactId> <!-- $idArtifact -->" #Para que funcione se le debe añadir ese comentario
-    contador=0
+    local patternVersion="<version>([^<]+)<\/version> $idVersion"         #Para que funcione se le debe añadir ese comentario
+    local patternArtifact="<artifactId>([^<]+)<\/artifactId> $idArtifact" #Para que funcione se le debe añadir ese comentario
+    local patternOpenShiftName="<openshiftProjectName>([^<]+)<\/openshiftProjectName> $idOpenShiftName"
+    local contador=0
     while IFS= read -r linea; do
-        if [ $contador -eq 2 ]; then
+        if [ $contador -eq 3 ]; then
             break
         fi
 
-        pattern_line_change="$linea"
         linea=$(echo "$linea" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
         if [[ "$linea" =~ $patternVersion ]]; then
             current_version="${BASH_REMATCH[1]}"
             ((contador++))
         fi
+
         if [[ "$linea" =~ $patternArtifact ]]; then
             project_artifact="${BASH_REMATCH[1]}"
             ((contador++))
@@ -65,7 +67,7 @@ modifySemver() {
     # Verificar si el argumento type es válido
     if [[ "$type" != "major" && "$type" != "minor" && "$type" != "patch" ]]; then
         echo "Error: Tipo de versión inválido. Debe ser 'major', 'minor' o 'patch'."
-        return 1
+        exit 1
     fi
 
     # Extraer las partes del número de versión
@@ -95,19 +97,17 @@ modifySemver() {
 }
 
 changeVersion() {
-    local escaped_pattern_line_change=$(sed 's/[[\.*^$/]/\\&/g' <<<"$pattern_line_change")
-    local escaped_new_version=$(sed 's/[[\.*^$/]/\\&/g' <<<"$new_version")
-    sed -i "s/$escaped_pattern_line_change/    <version>$escaped_new_version<\/version> <!-- $idVersion -->/g" "$path_info"
+    local oldVersion="<version>$current_version<\/version> $idVersion"
+    local nowVersion="<version>$new_version<\/version> $idVersion"
+    sed -i "s/$oldVersion/$nowVersion/g" "$path_info"
 }
 
 updateAllArtifactForProyect() {
     # Buscamos y reemplazamos el artifact en los archivos de la ruta especificada
     local pathFile="$path/deploy"
-    if [[ $new_version != "" ]]; then
-        find "$pathFile" -type f -exec grep -l "$project_artifact-$current_version" {} + | xargs sed -i "s/$project_artifact-$current_version/$project_artifact-$new_version/g"
-        find "$pathFile" -type f -exec grep -l "$project_artifact:$current_version" {} + | xargs sed -i "s/$project_artifact:$current_version/$project_artifact:$new_version/g"
-        echo "Artifact<old: $project_artifact-$current_version | new: $project_artifact-$new_version>"
-    fi
+    find "$pathFile" -type f -exec grep -l "$project_artifact-$current_version" {} + | xargs sed -i "s/$project_artifact-$current_version/$project_artifact-$new_version/g"
+    find "$pathFile" -type f -exec grep -l "$project_artifact:$current_version" {} + | xargs sed -i "s/$project_artifact:$current_version/$project_artifact:$new_version/g"
+    echo "Artifact<old: $project_artifact-$current_version | new: $project_artifact-$new_version>"
 }
 
 inputArgs() {
