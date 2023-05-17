@@ -5,7 +5,21 @@
 # Script para automatizar el proceso de cambio de versión en los archivos del proyecto
 # y manejar diferentes escenarios de uso mediante la interfaz de línea de comandos (CLI).
 
-# Variables del Script [No tocar]
+# [Requisitos]
+# Marcar las etiquetas artifactId, version, openshiftProjectName con un comentario identificador
+# </artifactId> <!-- idArtifactProject -->
+# </version> <!-- idVersionProject -->
+# </openshiftProjectName> <!-- idOpenShiftName -->
+
+# Variables del script [Modificable]
+# [Produccion]
+name_project_production=""
+route_producion=""
+# [Incubadora]
+name_project_incubadora=""
+route_incubadora=""
+
+# Variables del Script [UnModifiable]
 path=""      #ruta del proyecto
 path_info="" #ruta del pom
 
