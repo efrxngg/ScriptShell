@@ -89,13 +89,13 @@ route_incubadora="incubadora-edx-renuncia-webbff.openshift-apps.conecel.com"
 number_replicas_inc=1
 
 # Constantes del Script [UnModifiable]
-path="."                  #ruta del proyecto
+path="./retentionprocesses"                  #ruta del proyecto
 path_info="$path/pom.xml" #ruta del pom
 
 idVersion="<!-- idVersionProject -->"                     #identificador de la version del proyecto
 idArtifact="<!-- idArtifactProject -->"                   #identificador de artifact del proyecto
 idOpenShiftName="<!-- idNameOpenShiftProjectSelected -->" #identificador de nombre del proyecto en openshift
-idNumb="#idNumbReplicasSelected"                          #identicador del numero de replicas seleccionadas
+idNumbReplicas="#idNumbReplicasSelected"                          #identicador del numero de replicas seleccionadas
 idImage="#idImageSelected"                                #identificador de numero de imagenes seleccionadas
 idHost="#idHostSelected"                                  #identificador del host seleccionado
 
@@ -183,41 +183,39 @@ upgradeAllVersionForDeploymentConfig() {
 # Environment functions
 changeRouteProd() {
     local pathFile="$path/deploy"
-    local pattern="host: .* #idHostSelected"
-    # sed -i "s/\($pattern\)/host: $route_incubadora #idHostSelected/g" "$pathFile"
-    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route_production #idHostSelected/g"
+    local pattern="host: .* $idHost"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route_production $idHost/g"
 }
 
 changeRouteInc() {
     local pathFile="$path/deploy"
-    local pattern="host: .* #idHostSelected"
-    # sed -i "s/\($pattern\)/host: $route_incubadora #idHostSelected/g" "$pathFile"
-    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route_incubadora #idHostSelected/g"
+    local pattern="host: .* $idHost"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route_incubadora $idHost/g"
 }
 
 changeNumbReplicasProd() {
     local pathFile="$path/deploy"
-    local pattern="replicas: .* #idNumbReplicasSelected"
-    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $number_replicas_prod #idNumbReplicasSelected/g"
+    local pattern="replicas: .* $idNumbReplicas"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $number_replicas_prod $idNumbReplicas/g"
 }
 
 changeNumbReplicasInc() {
     local pathFile="$path/deploy"
-    local pattern="replicas: .* #idNumbReplicasSelected"
-    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $number_replicas_inc #idNumbReplicasSelected/g"
+    local pattern="replicas: .* $idNumbReplicas"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $number_replicas_inc $idNumbReplicas/g"
 }
 
 changeImageProd() {
     local pathFile="$path/deploy"
-    local pattern="image: \([^/]\+\)/.*/\([^/]\+\) #idImageSelected"
-    local replacement="image: \1/$name_project_production/\2 #idImageSelected"
+    local pattern="image: \([^/]\+\)/.*/\([^/]\+\) $idImage"
+    local replacement="image: \1/$name_project_production/\2 $idImage"
     find "$pathFile" -type f -exec grep -q "$pattern" {} \; -exec sed -i "s@$pattern@$replacement@g" {} +
 }
 
 changeImageInc() {
     local pathFile="$path/deploy"
-    local pattern="image: \([^/]\+\)/.*/\([^/]\+\) #idImageSelected"
-    local replacement="image: \1/$name_project_incubadora/\2 #idImageSelected"
+    local pattern="image: \([^/]\+\)/.*/\([^/]\+\) $idImage"
+    local replacement="image: \1/$name_project_incubadora/\2 $idImage"
     find "$pathFile" -type f -exec grep -q "$pattern" {} \; -exec sed -i "s@$pattern@$replacement@g" {} +
 }
 
