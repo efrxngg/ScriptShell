@@ -21,7 +21,7 @@
 #   spec.template.spec.containers.image: (EJEMPLO)
 #       image: docker-registry.default.svc:5000/claro-service-waiver/edx-renuncia-webbff:1.3.3 #idImageSelected
 #
-# route.yml: 
+# -route.yml: 
 #   spec.host: (EJEMPLO)
 #       host: edx-renuncia-webbff.openshift-apps.conecel.com #idHostSelected
 
@@ -35,7 +35,7 @@ name_project_incubadora="claro-edx-incubadora"
 route_incubadora="incubadora-edx-renuncia-webbff.openshift-apps.conecel.com"
 number_replicas_inc=1
 
-# Variables del Script [UnModifiable]
+# Constantes del Script [UnModifiable]
 path="./retentionprocesses" #ruta del proyecto
 path_info="$path/pom.xml"                #ruta del pom
 
@@ -46,6 +46,7 @@ idNumb="#idNumbReplicasSelected"                          #identicador del numer
 idImage="#idImageSelected"                                #identificador de numero de imagenes seleccionadas
 idHost="#idHostSelected"                                  #identificador del host seleccionado
 
+# Variables de utilidad
 project_artifact="" #artefacto del proyecto
 current_version=""  #version actual del proyecto
 new_version=""      #version nueva
@@ -112,13 +113,14 @@ modifySemver() {
     echo "Version<old: $current_version | new: $new_version>"
 }
 
-changeVersion() {
+upgradeVersionForProject() {
+    modifySemver "$type"
     local oldVersion="<version>$current_version<\/version> $idVersion"
     local nowVersion="<version>$new_version<\/version> $idVersion"
     sed -i "s/$oldVersion/$nowVersion/g" "$path_info"
 }
 
-updateAllArtifactForProyect() {
+upgradeAllVersionForDeploymentConfig() {
     # Buscamos y reemplazamos el artifact en los archivos de la ruta especificada
     local pathFile="$path/deploy"
     find "$pathFile" -type f -exec grep -l "$project_artifact-$current_version" {} + | xargs sed -i "s/$project_artifact-$current_version/$project_artifact-$new_version/g"
@@ -157,14 +159,14 @@ changeImageProd() {
     local pathFile="$path/deploy"
     local pattern="image: \([^/]\+\)/.*/\([^/]\+\) #idImageSelected"
     local replacement="image: \1/$name_project_production/\2 #idImageSelected"
-    find "$pathFile" -type f -exec sed -i "s@$pattern@$replacement@g" {} +
+    find "$pathFile" -type f -exec grep -q "$pattern" {} \; -exec sed -i "s@$pattern@$replacement@g" {} +
 }
 
 changeImageInc() {
     local pathFile="$path/deploy"
     local pattern="image: \([^/]\+\)/.*/\([^/]\+\) #idImageSelected"
     local replacement="image: \1/$name_project_incubadora/\2 #idImageSelected"
-    find "$pathFile" -type f -exec sed -i "s@$pattern@$replacement@g" {} +
+    find "$pathFile" -type f -exec grep -q "$pattern" {} \; -exec sed -i "s@$pattern@$replacement@g" {} +
 }
 
 changeNameOpenShiftProd() {
@@ -226,9 +228,8 @@ inputArgs "$@"
 if [[ $type != "" ]]; then
     echo "Tipo cambio de version: $type"
     getPomInformation
-    modifySemver "$type"
-    changeVersion
-    updateAllArtifactForProyect
+    upgradeVersionForProject
+    upgradeAllVersionForDeploymentConfig
 fi
 
 if [[ $environment != "" ]]; then
