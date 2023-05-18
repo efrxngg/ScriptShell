@@ -6,26 +6,45 @@
 # y manejar diferentes escenarios de uso mediante la interfaz de línea de comandos (CLI).
 
 # [Requisitos]
-# Marcar las etiquetas artifactId, version, openshiftProjectName con un comentario identificador
-# </artifactId> <!-- idArtifactProject -->
-# </version> <!-- idVersionProject -->
-# </openshiftProjectName> <!-- idOpenShiftName -->
+# Marcar las siguientes etiquetas con un comentario identificador
+# -pom.xml: 
+#   project/version: (EJEMPLO) 
+#       </version> <!-- idVersionProject -->
+#   project/artifactId: (EJEMPLO) 
+#       </artifactId> <!-- idArtifactProject -->
+#   project/properties/openshiftProjectName: (EJEMPLO)
+#       </openshiftProjectName> <!-- idNameOpenShiftProjectSelected -->
+#
+# -dc.yaml: 
+#   spec.replicas: (EJEMPLO)
+#       replicas: 2 #idNumbReplicasSelected
+#   spec.template.spec.containers.image: (EJEMPLO)
+#       image: docker-registry.default.svc:5000/claro-service-waiver/edx-renuncia-webbff:1.3.3 #idImageSelected
+#
+# route.yml: 
+#   spec.host: (EJEMPLO)
+#       host: edx-renuncia-webbff.openshift-apps.conecel.com #idHostSelected
 
 # Variables del script [Modificable]
 # [Produccion]
 name_project_production="claro-service-waiver"
-route_producion="edx-renuncia-webbff.openshift-apps.conecel.com"
+route_production="edx-renuncia-webbff.openshift-apps.conecel.com"
+number_replicas_prod=2
 # [Incubadora]
 name_project_incubadora="claro-edx-incubadora"
 route_incubadora="incubadora-edx-renuncia-webbff.openshift-apps.conecel.com"
+number_replicas_inc=1
 
 # Variables del Script [UnModifiable]
-path=""      #ruta del proyecto
-path_info="" #ruta del pom
+path="./retentionprocesses" #ruta del proyecto
+path_info="$path/pom.xml"                #ruta del pom
 
-idVersion="<!-- idVersionProject -->"             #identificador de la version del proyecto
-idArtifact="<!-- idArtifactProject -->"           #identificacion de artifact del proyecto
-idOpenShiftName="<!-- idOpenShiftNameProject -->" #identificacion de artifact del proyecto
+idVersion="<!-- idVersionProject -->"                     #identificador de la version del proyecto
+idArtifact="<!-- idArtifactProject -->"                   #identificador de artifact del proyecto
+idOpenShiftName="<!-- idNameOpenShiftProjectSelected -->" #identificador de nombre del proyecto en openshift
+idNumb="#idNumbReplicasSelected"                          #identicador del numero de replicas seleccionadas
+idImage="#idImageSelected"                                #identificador de numero de imagenes seleccionadas
+idHost="#idHostSelected"                                  #identificador del host seleccionado
 
 project_artifact="" #artefacto del proyecto
 current_version=""  #version actual del proyecto
@@ -34,27 +53,9 @@ new_version=""      #version nueva
 type=""        #tipo de cambio de version: major, minor 0 patch
 environment="" #tipo de entorno: prod, inc
 
-# Functions
-inputArgs() {
-    while getopts "t:e:" opt; do
-        case $opt in
-        t)
-            type=$OPTARG
-            ;;
-        e)
-            environment=$OPTARG
-            ;;
-        \?)
-            echo "Opción inválida: -$OPTARG" >&2
-            exit 1
-            ;;
-        esac
-    done
-}
+# Version Functions
 
 getPomInformation() {
-    path="$1"
-    path_info="$path/pom.xml"
     local patternVersion="<version>([^<]+)<\/version> $idVersion"         #Para que funcione se le debe añadir ese comentario
     local patternArtifact="<artifactId>([^<]+)<\/artifactId> $idArtifact" #Para que funcione se le debe añadir ese comentario
     local contador=0
@@ -125,13 +126,112 @@ updateAllArtifactForProyect() {
     echo "Artifact<old: $project_artifact-$current_version | new: $project_artifact-$new_version>"
 }
 
-# Call
+# Environment functions
+changeRouteProd() {
+    local pathFile="$path/deploy"
+    local pattern="host: .* #idHostSelected"
+    # sed -i "s/\($pattern\)/host: $route_incubadora #idHostSelected/g" "$pathFile"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route_production #idHostSelected/g"
+}
+
+changeRouteInc() {
+    local pathFile="$path/deploy"
+    local pattern="host: .* #idHostSelected"
+    # sed -i "s/\($pattern\)/host: $route_incubadora #idHostSelected/g" "$pathFile"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route_incubadora #idHostSelected/g"
+}
+
+changeNumbReplicasProd() {
+    local pathFile="$path/deploy"
+    local pattern="replicas: .* #idNumbReplicasSelected"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $number_replicas_prod #idNumbReplicasSelected/g"
+}
+
+changeNumbReplicasInc() {
+    local pathFile="$path/deploy"
+    local pattern="replicas: .* #idNumbReplicasSelected"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $number_replicas_inc #idNumbReplicasSelected/g"
+}
+
+changeImageProd() {
+    local pathFile="$path/deploy"
+    local pattern="image: \([^/]\+\)/.*/\([^/]\+\) #idImageSelected"
+    local replacement="image: \1/$name_project_production/\2 #idImageSelected"
+    find "$pathFile" -type f -exec sed -i "s@$pattern@$replacement@g" {} +
+}
+
+changeImageInc() {
+    local pathFile="$path/deploy"
+    local pattern="image: \([^/]\+\)/.*/\([^/]\+\) #idImageSelected"
+    local replacement="image: \1/$name_project_incubadora/\2 #idImageSelected"
+    find "$pathFile" -type f -exec sed -i "s@$pattern@$replacement@g" {} +
+}
+
+changeNameOpenShiftProd() {
+    local pattern="<openshiftProjectName>.*<\/openshiftProjectName> $idOpenShiftName"
+    local newOSN="<openshiftProjectName>$name_project_production<\/openshiftProjectName> $idOpenShiftName"
+    sed -i "s/$pattern/$newOSN/g" "$path_info"
+}
+
+changeNameOpenShiftInc() {
+    local pattern="<openshiftProjectName>.*<\/openshiftProjectName> $idOpenShiftName"
+    local newOSN="<openshiftProjectName>$name_project_incubadora<\/openshiftProjectName> $idOpenShiftName"
+    sed -i "s/$pattern/$newOSN/g" "$path_info"
+}
+
+modifyEnvironment() {
+    local env="$1"
+    # Verificar si el argumento type es válido
+    if [[ "$env" != "prod" && "$env" != "inc" ]]; then
+        echo "Error: Tipo de entorno es inválido. Debe ser 'prod' o 'inc'."
+        exit 1
+    fi
+
+    case "$env" in
+    "prod")
+        changeRouteProd
+        changeNumbReplicasProd
+        changeImageProd
+        changeNameOpenShiftProd
+        ;;
+    "inc")
+        changeRouteInc
+        changeNumbReplicasInc
+        changeImageInc
+        changeNameOpenShiftInc
+        ;;
+    esac
+}
+
+# Call Function 
+inputArgs() {
+    while getopts "t:e:" opt; do
+        case $opt in
+        t)
+            type=$OPTARG
+            ;;
+        e)
+            environment=$OPTARG
+            ;;
+        \?)
+            echo "Opción inválida: -$OPTARG" >&2
+            exit 1
+            ;;
+        esac
+    done
+}
+
 inputArgs "$@"
 
 if [[ $type != "" ]]; then
     echo "Tipo cambio de version: $type"
-    getPomInformation "./retentionprocesses"
+    getPomInformation
     modifySemver "$type"
     changeVersion
     updateAllArtifactForProyect
+fi
+
+if [[ $environment != "" ]]; then
+    echo "Tipo de cambio de entorno a: $environment"
+    modifyEnvironment "$environment"
 fi
