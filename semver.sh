@@ -9,7 +9,16 @@
 # Además, permite el cambio en los archivos de configuración para el cambio de entorno: prod (Producción) e inc (Incubadora).
 #
 # [Requisitos]
-# Marcar las siguientes etiquetas con un comentario identificador
+# 1.- Definir las variables en el apartado de: # Variables del script [Modificable], ya sea para producción o incubadora.
+#  Modifique únicamente las propiedades de las siguientes variables según corresponda.
+#  Entiéndase por "propiedad" el valor que está después del signo igual (=) dentro de las comillas dobles (""). Por ejemplo: atributo="propiedad".
+#  (EJEMPLO)
+# - semver.sh
+#   - name_project_production = "claro-service-waiver" -> Aquí se define el nombre del proyecto de OpenShift.
+#   - route_production = "edx-renuncia-webbff.openshift-apps.conecel.com" -> Aquí se define la ruta que el route.yaml va a utilizar.
+#   - number_replicas_prod = 2 -> Aquí se define la cantidad de réplicas a utilizar en el dc.yaml.
+# 
+# 2.- Marcar las siguientes etiquetas con un comentario identificador
 # - pom.xml:
 #   - project/version: (EJEMPLO)
 #     </version> <!-- idVersionProject -->
@@ -33,7 +42,7 @@
 #
 # [Uso]
 # Para utilizar el script, debe ubicarlo en la ruta base de su proyecto.
-# Ejecute el script proporcionando las opciones y argumentos correspondientes.
+# Ejecute el script en una shell bash proporcionando las opciones y argumentos correspondientes.
 #
 # Opciones disponibles:
 # -t <tipo>:
@@ -66,7 +75,8 @@
 # - En caso de que sea necesario, se puede modificar la #ruta del proyecto
 #   para indicar la ruta base del proyecto en el que se desea realizar la modificación.
 
-# [Fin]
+# [Ref]
+# Semantic Versioning. Recuperado de https://semver.org/
 
 # Variables del script [Modificable]
 # [Produccion]
