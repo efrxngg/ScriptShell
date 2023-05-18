@@ -17,7 +17,7 @@
 #   - name_project_production = "claro-service-waiver" -> Aquí se define el nombre del proyecto de OpenShift.
 #   - route_production = "edx-renuncia-webbff.openshift-apps.conecel.com" -> Aquí se define la ruta que el route.yaml va a utilizar.
 #   - number_replicas_prod = 2 -> Aquí se define la cantidad de réplicas a utilizar en el dc.yaml.
-# 
+#
 # 2.- Marcar las siguientes etiquetas con un comentario identificador
 # - pom.xml:
 #   - project/version: (EJEMPLO)
@@ -89,13 +89,13 @@ route_incubadora="incubadora-edx-renuncia-webbff.openshift-apps.conecel.com"
 number_replicas_inc=1
 
 # Constantes del Script [UnModifiable]
-path="./retentionprocesses"                  #ruta del proyecto
-path_info="$path/pom.xml" #ruta del pom
+path="." #ruta del proyecto
+path_info="$path/pom.xml"   #ruta del pom
 
 idVersion="<!-- idVersionProject -->"                     #identificador de la version del proyecto
 idArtifact="<!-- idArtifactProject -->"                   #identificador de artifact del proyecto
 idOpenShiftName="<!-- idNameOpenShiftProjectSelected -->" #identificador de nombre del proyecto en openshift
-idNumbReplicas="#idNumbReplicasSelected"                          #identicador del numero de replicas seleccionadas
+idNumbReplicas="#idNumbReplicasSelected"                  #identicador del numero de replicas seleccionadas
 idImage="#idImageSelected"                                #identificador de numero de imagenes seleccionadas
 idHost="#idHostSelected"                                  #identificador del host seleccionado
 
@@ -181,53 +181,32 @@ upgradeAllVersionForDeploymentConfig() {
 }
 
 # Environment functions
-changeRouteProd() {
+changeRoute() {
+    local route="$1"
     local pathFile="$path/deploy"
     local pattern="host: .* $idHost"
-    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route_production $idHost/g"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route $idHost/g"
 }
 
-changeRouteInc() {
-    local pathFile="$path/deploy"
-    local pattern="host: .* $idHost"
-    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/host: $route_incubadora $idHost/g"
-}
-
-changeNumbReplicasProd() {
+changeNumbReplicas() {
+    local numbReplicas="$1"
     local pathFile="$path/deploy"
     local pattern="replicas: .* $idNumbReplicas"
-    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $number_replicas_prod $idNumbReplicas/g"
+    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $numbReplicas $idNumbReplicas/g"
 }
 
-changeNumbReplicasInc() {
-    local pathFile="$path/deploy"
-    local pattern="replicas: .* $idNumbReplicas"
-    find "$pathFile" -type f -exec grep -l "$pattern" {} + | xargs sed -i "s/$pattern/replicas: $number_replicas_inc $idNumbReplicas/g"
-}
-
-changeImageProd() {
+changeImage() {
+    local image="$1"
     local pathFile="$path/deploy"
     local pattern="image: \([^/]\+\)/.*/\([^/]\+\) $idImage"
-    local replacement="image: \1/$name_project_production/\2 $idImage"
+    local replacement="image: \1/$image/\2 $idImage"
     find "$pathFile" -type f -exec grep -q "$pattern" {} \; -exec sed -i "s@$pattern@$replacement@g" {} +
 }
 
-changeImageInc() {
-    local pathFile="$path/deploy"
-    local pattern="image: \([^/]\+\)/.*/\([^/]\+\) $idImage"
-    local replacement="image: \1/$name_project_incubadora/\2 $idImage"
-    find "$pathFile" -type f -exec grep -q "$pattern" {} \; -exec sed -i "s@$pattern@$replacement@g" {} +
-}
-
-changeNameOpenShiftProd() {
+changeNameOpenShift() {
+    local name="$1"
     local pattern="<openshiftProjectName>.*<\/openshiftProjectName> $idOpenShiftName"
-    local newOSN="<openshiftProjectName>$name_project_production<\/openshiftProjectName> $idOpenShiftName"
-    sed -i "s/$pattern/$newOSN/g" "$path_info"
-}
-
-changeNameOpenShiftInc() {
-    local pattern="<openshiftProjectName>.*<\/openshiftProjectName> $idOpenShiftName"
-    local newOSN="<openshiftProjectName>$name_project_incubadora<\/openshiftProjectName> $idOpenShiftName"
+    local newOSN="<openshiftProjectName>$name<\/openshiftProjectName> $idOpenShiftName"
     sed -i "s/$pattern/$newOSN/g" "$path_info"
 }
 
@@ -241,16 +220,16 @@ modifyEnvironment() {
 
     case "$env" in
     "prod")
-        changeRouteProd
-        changeNumbReplicasProd
-        changeImageProd
-        changeNameOpenShiftProd
+        changeRoute "$route_production"
+        changeNumbReplicas "$number_replicas_prod"
+        changeImage "$name_project_production"
+        changeNameOpenShift "$name_project_production"
         ;;
     "inc")
-        changeRouteInc
-        changeNumbReplicasInc
-        changeImageInc
-        changeNameOpenShiftInc
+        changeRoute "$route_incubadora"
+        changeNumbReplicas "$number_replicas_inc"
+        changeImage "$name_project_incubadora"
+        changeNameOpenShift "$name_project_incubadora"
         ;;
     esac
 }
