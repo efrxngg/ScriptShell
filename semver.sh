@@ -262,6 +262,20 @@ inputArgs() {
     done
 }
 
+validateVariables() {
+    # Variables de producción
+    if [[ -z "$name_project_production" || -z "$route_production" || -z "$number_replicas_prod" ]]; then
+        echo "Falta completar algunas variables de producción."
+        exit 1
+    fi
+
+    # Variables de incubadora
+    if [[ -z "$name_project_incubadora" || -z "$route_incubadora" || -z "$number_replicas_inc" ]]; then
+        echo "Falta completar algunas variables de incubadora."
+        exit 1
+    fi
+}
+
 inputArgs "$@"
 
 if [[ $type != "" ]]; then
@@ -273,5 +287,6 @@ fi
 
 if [[ $environment != "" ]]; then
     echo "Tipo de cambio de entorno a: $environment"
+    validateVariables
     modifyEnvironment "$environment"
 fi
