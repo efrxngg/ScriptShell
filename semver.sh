@@ -140,9 +140,19 @@ modifySemver() {
     fi
 
     # Extraer las partes del número de versión
-    local major=$(echo "$current_version" | cut -d '.' -f 1)
-    local minor=$(echo "$current_version" | cut -d '.' -f 2)
-    local patch=$(echo "$current_version" | cut -d '.' -f 3)
+    local prefix=""
+    local major=""
+    local minor=""
+    local patch=""
+    local sufix=""
+
+    if [[ "$current_version" =~ ([^0-9]*)([0-9]+)\.([0-9]+)\.([0-9]+)([^0-9]*) ]]; then
+        prefix="${BASH_REMATCH[1]}"
+        major="${BASH_REMATCH[2]}"
+        minor="${BASH_REMATCH[3]}"
+        patch="${BASH_REMATCH[4]}"
+        sufix="${BASH_REMATCH[5]}"
+    fi
 
     # Incrementar la parte correspondiente según el tipo especificado
     case "$type" in
@@ -161,7 +171,7 @@ modifySemver() {
     esac
 
     # Construir la nueva versión modificada
-    new_version="$major.$minor.$patch"
+    new_version="$prefix$major.$minor.$patch$sufix"
     echo "Version<old: $current_version | new: $new_version>"
 }
 
